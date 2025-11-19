@@ -1,11 +1,12 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import resend
+import os
 
 app = Flask(__name__)
 CORS(app)
 
-resend.api_key = "re_XsXxjNTj_3McfDNBydRwNboa4chChy8ZP"
+resend.api_key = os.getenv('RESEND_API_KEY')
 
 @app.route('/contact', methods=['POST'])
 def contact():
