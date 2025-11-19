@@ -484,8 +484,12 @@
         });
 
         // Form Submission
-        document.getElementById('contactForm').addEventListener('submit', function(e) {
+        document.getElementById('contactForm').addEventListener('submit', async function(e) {
             e.preventDefault();
+            
+            const button = this.querySelector('button[type="submit"]');
+            button.textContent = 'Sending...';
+            button.disabled = true;
             
             const formData = {
                 name: document.getElementById('name').value,
@@ -494,12 +498,27 @@
                 message: document.getElementById('message').value
             };
             
-            // For now, just log and show alert
-            console.log('Form submitted:', formData);
-            alert('Thank you! We will get back to you soon.');
-            this.reset();
-            
-            // TODO: Integrate with email service (FormSpree, EmailJS, etc.)
+            try {
+                const response = await fetch('/contact', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                if (response.ok) {
+                    alert('Thank you! We will get back to you soon.');
+                    this.reset();
+                } else {
+                    alert('Something went wrong. Please try again.');
+                }
+            } catch (error) {
+                alert('Failed to send message. Please try again.');
+            } finally {
+                button.textContent = 'Send Message';
+                button.disabled = false;
+            }
         });
 
         // Smooth scroll for anchor links
