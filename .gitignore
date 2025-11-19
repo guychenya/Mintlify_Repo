@@ -1,2 +1,8 @@
-# Local Netlify folder
-.netlify
+node_modules/
+.env
+.env.local
+*.pyc
+__pycache__/
+.DS_Store
+.netlify/
+package-lock.json
