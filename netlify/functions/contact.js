@@ -29,18 +29,22 @@ exports.handler = async (event) => {
       })
     });
 
+    const result = await response.json();
+    
     if (response.ok) {
       return {
         statusCode: 200,
         body: JSON.stringify({ success: true })
       };
     } else {
+      console.error('Resend API error:', result);
       return {
         statusCode: 500,
-        body: JSON.stringify({ error: 'Failed to send email' })
+        body: JSON.stringify({ error: 'Failed to send email', details: result })
       };
     }
   } catch (error) {
+    console.error('Function error:', error);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: error.message })
