@@ -16,7 +16,7 @@ exports.handler = async (event) => {
       },
       body: JSON.stringify({
         from: 'onboarding@resend.dev',
-        to: ['info@reliatrak.org'],
+        to: ['info@reliatrack.org'],
         subject: `New Contact Form Submission from ${data.name}`,
         html: `
           <h2>New Contact Form Submission</h2>

@@ -14,7 +14,7 @@ def contact():
     
     params = {
         "from": "onboarding@resend.dev",
-        "to": ["info@reliatrak.org"],
+        "to": ["info@reliatrack.org"],
         "subject": f"New Contact Form Submission from {data['name']}",
         "html": f"""
         <h2>New Contact Form Submission</h2>
