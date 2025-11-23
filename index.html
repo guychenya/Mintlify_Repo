@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: white;
+            padding: 12px 20px;
+            border-bottom: 1px solid #e5e5e5;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .header-btn:hover {
+            background: #f5f5f5;
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #999;
+        }
+
+        .llama-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .messages {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            line-height: 1.5;
+        }
+
+        .message.user .message-content {
+            background: #007AFF;
+            color: white;
+        }
+
+        .message.assistant .message-content {
+            background: white;
+            color: #333;
+            border: 1px solid #e5e5e5;
+        }
+
+        .message.assistant.loading .message-content {
+            background: #f5f5f5;
+            color: #999;
+        }
+
+        .input-container {
+            background: white;
+            border-top: 1px solid #e5e5e5;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .input-wrapper {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            background: #f5f5f5;
+            border-radius: 24px;
+            padding: 8px 12px;
+        }
+
+        .input-field {
+            flex: 1;
+            border: none;
+            background: none;
+            outline: none;
+            font-size: 15px;
+            padding: 8px;
+            resize: none;
+            max-height: 120px;
+            font-family: inherit;
+        }
+
+        .model-select {
+            border: none;
+            background: none;
+            outline: none;
+            font-size: 14px;
+            color: #666;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+
+        .send-btn {
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .send-btn:hover {
+            background: #000;
+        }
+
+        .send-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .add-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: #666;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .provider-section {
+            margin-bottom: 20px;
+            padding: 16px;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+        }
+
+        .provider-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .provider-name {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .status-badge.valid {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-badge.invalid {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .input-group {
+            margin-bottom: 12px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 4px;
+            color: #666;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: #007AFF;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .provider-select {
+            padding: 8px 12px;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button class="header-btn" onclick="newChat()">
+            <span>✏️</span>
+            <span>New Chat</span>
+        </button>
+        <button class="header-btn" onclick="openSettings()">
+            <span>⚙️</span>
+            <span>Settings</span>
+        </button>
+    </div>
+
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">LLM Provider Settings</div>
+            <div id="providerSettings"></div>
+            <button class="btn btn-secondary" onclick="closeSettings()">Close</button>
+        </div>
+    </div>
+
+    <div class="chat-container" id="chatContainer">
+        <div class="empty-state" id="emptyState">
+            <div class="llama-icon">🦙</div>
+        </div>
+        <div class="messages" id="messages" style="display: none;"></div>
+    </div>
+
+    <div class="input-container">
+        <div class="input-wrapper">
+            <textarea 
+                class="input-field" 
+                id="messageInput" 
+                placeholder="Send a message"
+                rows="1"
+                onkeydown="handleKeyPress(event)"
+            ></textarea>
+            <button class="add-btn">+</button>
+            <select class="provider-select" id="providerSelect" onchange="updateModelSelect()"></select>
+            <select class="model-select" id="modelSelect"></select>
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                <span>↑</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const PROVIDERS = {
+            groq: {
+                name: 'Groq',
+                apiUrl: 'https://api.groq.com/openai/v1',
+                modelsEndpoint: '/models',
+                chatEndpoint: '/chat/completions',
+                requiresKey: true,
+                free: true
+            },
+            openai: {
+                name: 'OpenAI',
+                apiUrl: 'https://api.openai.com/v1',
+                modelsEndpoint: '/models',
+                chatEndpoint: '/chat/completions',
+                requiresKey: true,
+                free: false
+            },
+            ollama: {
+                name: 'Ollama (Local)',
+                apiUrl: 'http://localhost:11434',
+                modelsEndpoint: '/api/tags',
+                chatEndpoint: '/api/chat',
+                requiresKey: false,
+                free: true
+            }
+        };
+
+        let messages = [];
+        let providerConfigs = JSON.parse(localStorage.getItem('providerConfigs') || '{}');
+        let availableModels = JSON.parse(localStorage.getItem('availableModels') || '{}');
+
+        async function validateAndFetchModels(providerId) {
+            const provider = PROVIDERS[providerId];
+            const config = providerConfigs[providerId] || {};
+            
+            try {
+                const headers = { 'Content-Type': 'application/json' };
+                if (provider.requiresKey && config.apiKey) {
+                    headers['Authorization'] = `Bearer ${config.apiKey}`;
+                }
+
+                const response = await fetch(provider.apiUrl + provider.modelsEndpoint, { headers });
+                
+                if (!response.ok) throw new Error('Invalid API key or connection failed');
+
+                const data = await response.json();
+                let models = [];
+
+                if (providerId === 'ollama') {
+                    models = data.models?.map(m => m.name) || [];
+                } else {
+                    models = data.data?.map(m => m.id) || [];
+                }
+
+                availableModels[providerId] = models;
+                localStorage.setItem('availableModels', JSON.stringify(availableModels));
+                
+                return { valid: true, models };
+            } catch (error) {
+                return { valid: false, error: error.message };
+            }
+        }
+
+        function openSettings() {
+            const modal = document.getElementById('settingsModal');
+            const container = document.getElementById('providerSettings');
+            container.innerHTML = '';
+
+            Object.entries(PROVIDERS).forEach(([id, provider]) => {
+                const config = providerConfigs[id] || {};
+                const models = availableModels[id] || [];
+                
+                const section = document.createElement('div');
+                section.className = 'provider-section';
+                section.innerHTML = `
+                    <div class="provider-header">
+                        <span class="provider-name">${provider.name} ${provider.free ? '(Free)' : ''}</span>
+                        <span class="status-badge ${models.length > 0 ? 'valid' : 'invalid'}" id="status-${id}">
+                            ${models.length > 0 ? `✓ ${models.length} models` : 'Not configured'}
+                        </span>
+                    </div>
+                    ${provider.requiresKey ? `
+                        <div class="input-group">
+                            <label>API Key</label>
+                            <input type="password" id="key-${id}" value="${config.apiKey || ''}" placeholder="Enter API key">
+                        </div>
+                    ` : ''}
+                    <button class="btn btn-primary" onclick="testProvider('${id}')">Test & Fetch Models</button>
+                `;
+                container.appendChild(section);
+            });
+
+            modal.classList.add('show');
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('show');
+            updateProviderSelect();
+        }
+
+        async function testProvider(providerId) {
+            const provider = PROVIDERS[providerId];
+            const keyInput = document.getElementById(`key-${providerId}`);
+            
+            if (provider.requiresKey && keyInput) {
+                providerConfigs[providerId] = { apiKey: keyInput.value };
+                localStorage.setItem('providerConfigs', JSON.stringify(providerConfigs));
+            }
+
+            const statusBadge = document.getElementById(`status-${providerId}`);
+            statusBadge.textContent = 'Testing...';
+            statusBadge.className = 'status-badge';
+
+            const result = await validateAndFetchModels(providerId);
+            
+            if (result.valid) {
+                statusBadge.textContent = `✓ ${result.models.length} models`;
+                statusBadge.className = 'status-badge valid';
+            } else {
+                statusBadge.textContent = `✗ ${result.error}`;
+                statusBadge.className = 'status-badge invalid';
+            }
+        }
+
+        function updateProviderSelect() {
+            const select = document.getElementById('providerSelect');
+            select.innerHTML = '';
+            
+            Object.entries(PROVIDERS).forEach(([id, provider]) => {
+                if (availableModels[id]?.length > 0) {
+                    const option = document.createElement('option');
+                    option.value = id;
+                    option.textContent = provider.name;
+                    select.appendChild(option);
+                }
+            });
+
+            updateModelSelect();
+        }
+
+        function updateModelSelect() {
+            const providerSelect = document.getElementById('providerSelect');
+            const modelSelect = document.getElementById('modelSelect');
+            const providerId = providerSelect.value;
+            
+            modelSelect.innerHTML = '';
+            const models = availableModels[providerId] || [];
+            
+            models.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model;
+                option.textContent = model;
+                modelSelect.appendChild(option);
+            });
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function newChat() {
+            messages = [];
+            document.getElementById('messages').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'flex';
+            document.getElementById('messages').innerHTML = '';
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('messages').style.display = 'flex';
+
+            addMessage('user', message);
+            input.value = '';
+            input.style.height = 'auto';
+
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+
+            const loadingId = addMessage('assistant', '...', true);
+
+            try {
+                const providerId = document.getElementById('providerSelect').value;
+                const model = document.getElementById('modelSelect').value;
+                const provider = PROVIDERS[providerId];
+                const config = providerConfigs[providerId] || {};
+
+                const headers = { 'Content-Type': 'application/json' };
+                if (provider.requiresKey && config.apiKey) {
+                    headers['Authorization'] = `Bearer ${config.apiKey}`;
+                }
+
+                let body, responseText;
+
+                if (providerId === 'ollama') {
+                    body = JSON.stringify({
+                        model: model,
+                        messages: [{ role: 'user', content: message }],
+                        stream: false
+                    });
+                    const response = await fetch(provider.apiUrl + provider.chatEndpoint, {
+                        method: 'POST',
+                        headers,
+                        body
+                    });
+                    const data = await response.json();
+                    responseText = data.message?.content || 'No response';
+                } else {
+                    body = JSON.stringify({
+                        model: model,
+                        messages: [{ role: 'user', content: message }]
+                    });
+                    const response = await fetch(provider.apiUrl + provider.chatEndpoint, {
+                        method: 'POST',
+                        headers,
+                        body
+                    });
+                    const data = await response.json();
+                    responseText = data.choices?.[0]?.message?.content || 'No response';
+                }
+
+                document.getElementById(loadingId).remove();
+                addMessage('assistant', responseText);
+
+            } catch (error) {
+                document.getElementById(loadingId).remove();
+                addMessage('assistant', 'Error: ' + error.message);
+            }
+
+            sendBtn.disabled = false;
+        }
+
+        function addMessage(role, content, isLoading = false) {
+            const messagesDiv = document.getElementById('messages');
+            const messageId = 'msg-' + Date.now();
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role} ${isLoading ? 'loading' : ''}`;
+            messageDiv.id = messageId;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = content;
+            
+            messageDiv.appendChild(contentDiv);
+            messagesDiv.appendChild(messageDiv);
+            
+            messagesDiv.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            
+            return messageId;
+        }
+
+        document.getElementById('messageInput').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+
+        // Initialize
+        updateProviderSelect();
+        if (Object.keys(availableModels).length === 0) {
+            openSettings();
+        }
+    </script>
+</body>
+</html>
